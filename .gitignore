@@ -1,0 +1,88 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+.conda/
+backend/.venv/
+backend/venv/
+
+# Python cache & compiled bytecode
+__pycache__/
+backend/**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & type checking cache
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Node & Frontend dependencies
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+.vite/
+dist/
+build/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Databases & local state
+*.db
+*.sqlite
+*.sqlite3
+backend/fraud.db
+backend/fraud.db-journal
+backend/fraud.db-wal
+backend/fraud.db-shm
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Temporary files & debug screenshots
+screenshot*.png
+*shot*.png
+*preview*.png
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & editor configurations
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
