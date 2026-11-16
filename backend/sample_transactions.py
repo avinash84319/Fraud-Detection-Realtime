@@ -1,8 +1,7 @@
 """
-20 pre-built realistic sample transactions — mix of normal and suspicious.
+20 pre-built realistic sample transactions — clearly categorized as normal and fraud profiles.
 """
 import uuid
-from datetime import datetime
 
 SAMPLE_TRANSACTIONS = [
     {
@@ -19,6 +18,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 9,
         "day_of_week": 4,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Tier-1 Retail, Daytime 09:23 AM",
     },
     {
         "id": str(uuid.uuid4()),
@@ -34,6 +36,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 11,
         "day_of_week": 4,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Routine Fuel Spend, Daytime 11:05 AM",
     },
     {
         "id": str(uuid.uuid4()),
@@ -49,6 +54,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 14,
         "day_of_week": 5,
         "is_weekend": 1,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Weekend Groceries, Domestic US",
     },
     {
         "id": str(uuid.uuid4()),
@@ -64,6 +72,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 22,
         "day_of_week": 6,
         "is_weekend": 1,
+        "expected_type": "fraud",
+        "expected_label": "Fraud Profile",
+        "risk_indicator": "High Amount, Foreign UAE Terminal at 22:47",
     },
     {
         "id": str(uuid.uuid4()),
@@ -79,6 +90,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 3,
         "day_of_week": 0,
         "is_weekend": 0,
+        "expected_type": "fraud",
+        "expected_label": "Fraud Profile",
+        "risk_indicator": "Foreign Cross-Border (TR), Nocturnal 03:12 AM",
     },
     {
         "id": str(uuid.uuid4()),
@@ -94,6 +108,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 8,
         "day_of_week": 0,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Low-Ticket App Subscription, Morning",
     },
     {
         "id": str(uuid.uuid4()),
@@ -109,6 +126,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 13,
         "day_of_week": 0,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Standard Electronics Retail, Daytime",
     },
     {
         "id": str(uuid.uuid4()),
@@ -124,6 +144,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 23,
         "day_of_week": 0,
         "is_weekend": 0,
+        "expected_type": "fraud",
+        "expected_label": "Fraud Profile",
+        "risk_indicator": "High-Risk Crypto Cashout, Midnight 23:58",
     },
     {
         "id": str(uuid.uuid4()),
@@ -139,6 +162,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 7,
         "day_of_week": 1,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Monthly Recurring Music Subscription",
     },
     {
         "id": str(uuid.uuid4()),
@@ -154,6 +180,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 12,
         "day_of_week": 1,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Standard Domestic Flight Booking, Midday",
     },
     {
         "id": str(uuid.uuid4()),
@@ -169,6 +198,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 15,
         "day_of_week": 1,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Household Goods, Afternoon 15:00",
     },
     {
         "id": str(uuid.uuid4()),
@@ -184,6 +216,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 2,
         "day_of_week": 1,
         "is_weekend": 0,
+        "expected_type": "fraud",
+        "expected_label": "Fraud Profile",
+        "risk_indicator": "Unnotified Offshore Luxury, 02:05 AM",
     },
     {
         "id": str(uuid.uuid4()),
@@ -199,6 +234,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 10,
         "day_of_week": 2,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Verified Recurring Media Subscription",
     },
     {
         "id": str(uuid.uuid4()),
@@ -214,6 +252,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 16,
         "day_of_week": 2,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Retail Apparel, Afternoon 16:40",
     },
     {
         "id": str(uuid.uuid4()),
@@ -229,6 +270,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 4,
         "day_of_week": 2,
         "is_weekend": 0,
+        "expected_type": "fraud",
+        "expected_label": "Fraud Profile",
+        "risk_indicator": "Offshore Forex Liquidity Drain, 04:33 AM",
     },
     {
         "id": str(uuid.uuid4()),
@@ -244,6 +288,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 9,
         "day_of_week": 3,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Domestic Wholesale Groceries, 09:00 AM",
     },
     {
         "id": str(uuid.uuid4()),
@@ -259,6 +306,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 20,
         "day_of_week": 3,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Evening Dinner Delivery, Domestic US",
     },
     {
         "id": str(uuid.uuid4()),
@@ -274,6 +324,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 1,
         "day_of_week": 4,
         "is_weekend": 0,
+        "expected_type": "fraud",
+        "expected_label": "Fraud Profile",
+        "risk_indicator": "High-Value Foreign Luxury Watch, 01:50 AM",
     },
     {
         "id": str(uuid.uuid4()),
@@ -289,6 +342,9 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 11,
         "day_of_week": 4,
         "is_weekend": 0,
+        "expected_type": "normal",
+        "expected_label": "Normal Profile",
+        "risk_indicator": "Everyday Healthcare / Pharmacy",
     },
     {
         "id": str(uuid.uuid4()),
@@ -304,5 +360,8 @@ SAMPLE_TRANSACTIONS = [
         "hour_of_day": 23,
         "day_of_week": 4,
         "is_weekend": 0,
+        "expected_type": "fraud",
+        "expected_label": "Fraud Profile",
+        "risk_indicator": "Offshore Casino Drain, Nocturnal 23:45 PM",
     },
 ]

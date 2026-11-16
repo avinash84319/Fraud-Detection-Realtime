@@ -263,13 +263,13 @@ class FraudPipeline:
             )
 
         # 4. Transaction Volume Evaluation
-        if amount < 250:
-            amt_analysis = f"Spending Volume: ${amount:,.2f} is well within everyday discretionary purchasing limits."
-        elif amount < 1000:
-            amt_analysis = f"Spending Volume: ${amount:,.2f} represents a moderate retail ticket."
+        if amount < 2500:
+            amt_analysis = f"Spending Volume: ₹{amount:,.2f} is well within everyday discretionary purchasing limits."
+        elif amount < 25000:
+            amt_analysis = f"Spending Volume: ₹{amount:,.2f} represents a moderate retail ticket."
         else:
             amt_analysis = (
-                f"Spending Volume: ${amount:,.2f} is a high-magnitude anomaly (>10x typical account ticket size), "
+                f"Spending Volume: ₹{amount:,.2f} is a high-magnitude anomaly (>10x typical account ticket size), "
                 f"posing significant card balance exposure."
             )
 
@@ -331,7 +331,7 @@ class FraudPipeline:
             f"by an AI model with {probability:.1%} confidence.\n\n"
             f"Transaction Details:\n"
             f"- Merchant: {tx.get('merchant', 'unknown')} ({tx.get('category', 'unknown')})\n"
-            f"- Amount: ${tx.get('amount', 0):.2f}\n"
+            f"- Amount: ₹{tx.get('amount', 0):,.2f}\n"
             f"- Timestamp/Hour: {tx.get('hour_of_day', 12)}:00 ({'Weekend' if features.get('is_weekend') else 'Weekday'})\n"
             f"- Location: {tx.get('city', tx.get('location', 'US'))}, {tx.get('country', 'US')}\n"
             f"- Is Foreign: {features.get('is_foreign', 0)}\n\n"

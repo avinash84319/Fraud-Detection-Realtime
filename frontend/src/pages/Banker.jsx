@@ -39,8 +39,13 @@ function getCategoryIcon(cat, merchant = '') {
   return CATEGORY_ICONS[cat?.toLowerCase()] || CATEGORY_ICONS.default
 }
 
-function formatUSD(amount) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+function formatINR(amount) {
+  if (typeof amount !== 'number') amount = parseFloat(amount) || 0
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 2,
+  }).format(amount)
 }
 
 function formatRelativeTime(ts) {
@@ -90,11 +95,11 @@ function extractResult(item) {
   return null
 }
 
-function NotifyModal({ tx, result, onClose }) {
+function NotifyModal({ tx, result, onClose, onAlertDispatched }) {
   const isFraud = Boolean(result?.is_fraud)
   const defaultMsg = isFraud
-    ? `URGENT SECURITY ALERT\n\nDear Customer,\n\nOur real-time fraud prevention systems have flagged a suspicious charge of ${formatUSD(tx.amount)} at ${tx.merchant} on ${formatDateTime(tx.timestamp)}.\n\nCard: ····${tx.card_last4 || '----'}\nRisk Level: HIGH (${((result?.fraud_probability || 1) * 100).toFixed(0)}% confidence score)\nReason: Unusual merchant category / nocturnal cross-border activity.\n\nIf you DID NOT authorize this payment, please reply immediately or contact our Fraud Desk at 1-800-555-0199 to freeze your card.\n\nSecurity Operations Team\nFraudGuard Bank`
-    : `TRANSACTION CONFIRMATION\n\nDear Customer,\n\nYour transaction of ${formatUSD(tx.amount)} at ${tx.merchant} on ${formatDateTime(tx.timestamp)} was verified and cleared.\n\nCard: ····${tx.card_last4 || '----'}\nStatus: Verified Legitimate (Risk: Safe)\n\nThank you for choosing FraudGuard.\n\nCustomer Support Team\nFraudGuard Bank`
+    ? `URGENT SECURITY ALERT\n\nDear Customer,\n\nOur real-time fraud prevention systems have flagged an unauthorized charge of ${formatINR(tx.amount)} at ${tx.merchant} on ${formatDateTime(tx.timestamp)}.\n\nCard: ····${tx.card_last4 || '----'}\nRisk Level: HIGH (${((result?.fraud_probability || 1) * 100).toFixed(0)}% confidence score)\nReason: Suspicious nocturnal / high-velocity cross-border terminal.\n\nIf you DID NOT authorize this payment, please reply immediately or contact our 24/7 Fraud Desk at 1800-425-0199 to freeze your card.\n\nSecurity Operations Team\nFraudGuard Bank India`
+    : `TRANSACTION CONFIRMATION\n\nDear Customer,\n\nYour transaction of ${formatINR(tx.amount)} at ${tx.merchant} on ${formatDateTime(tx.timestamp)} was verified and cleared.\n\nCard: ····${tx.card_last4 || '----'}\nStatus: Cleared Legitimate (Risk: Safe)\n\nThank you for banking with us.\n\nCustomer Support Team\nFraudGuard Bank India`
 
   const [message, setMessage] = useState(defaultMsg)
   const [sending, setSending] = useState(false)
@@ -109,7 +114,15 @@ function NotifyModal({ tx, result, onClose }) {
         body: JSON.stringify({ message }),
       })
       setSent(true)
-      setTimeout(onClose, 1400)
+      if (onAlertDispatched) {
+        onAlertDispatched({
+          tx,
+          result,
+          message,
+          dispatchedAt: new Date().toISOString(),
+        })
+      }
+      setTimeout(onClose, 1200)
     } catch {
       setSending(false)
     }
@@ -129,12 +142,12 @@ function NotifyModal({ tx, result, onClose }) {
         </div>
         {sent ? (
           <div className="text-center py-8 text-green-400 font-semibold text-lg animate-bounce">
-            ✅ Alert dispatched to customer device successfully!
+            ✅ Alert saved & dispatched to cardholder device!
           </div>
         ) : (
           <>
             <p className="text-xs text-gray-400">
-              Review and adjust the automated incident notification before sending:
+              Review and adjust the notification message before sending:
             </p>
             <textarea
               className="w-full h-56 bg-gray-900 border border-gray-700 rounded-xl p-3.5 text-xs text-gray-200 focus:outline-none focus:border-blue-500 font-mono leading-relaxed resize-none"
@@ -165,7 +178,7 @@ function NotifyModal({ tx, result, onClose }) {
   )
 }
 
-function DetailPanel({ txState, onNotify }) {
+function DetailPanel({ txState, dispatchedAlert, onNotify }) {
   const [activeExplainTab, setActiveExplainTab] = useState('shap') // 'shap' | 'lime'
 
   if (!txState) {
@@ -210,6 +223,27 @@ function DetailPanel({ txState, onNotify }) {
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl">
+      {/* 0. Dispatched Alert Status Banner */}
+      {dispatchedAlert && (
+        <div className="bg-gradient-to-r from-blue-950 via-indigo-950 to-gray-900 border border-blue-500/70 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400 flex items-center justify-center text-xl shrink-0">
+              📨
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white flex items-center gap-2">
+                <span>Alert Dispatched to Cardholder</span>
+                <span className="text-[10px] bg-blue-600 text-white px-2 py-0.2 rounded-full font-mono uppercase">Saved in Log</span>
+              </div>
+              <div className="text-[11px] text-blue-300 mt-0.5">
+                Sent on {formatDateTime(dispatchedAlert.dispatchedAt)} · Direct customer notification logged
+              </div>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-blue-300">✓ Delivered</span>
+        </div>
+      )}
+
       {/* 1. Hero Verdict Banner */}
       {isDone && result ? (
         <div
@@ -264,7 +298,7 @@ function DetailPanel({ txState, onNotify }) {
               />
             </div>
             <div className="text-[10px] text-gray-500 mt-1">
-              {isFraud ? 'Requires immediate action' : 'Automated bypass granted'}
+              {isFraud ? 'Requires customer contact' : 'Automated bypass granted'}
             </div>
           </div>
         </div>
@@ -297,16 +331,16 @@ function DetailPanel({ txState, onNotify }) {
             <div className="text-white font-bold text-sm truncate">{tx.merchant}</div>
           </div>
           <div className="bg-gray-900/70 p-3 rounded-xl border border-gray-800">
-            <div className="text-gray-400 mb-0.5">Amount</div>
-            <div className="text-blue-300 font-black text-sm">{formatUSD(tx.amount)}</div>
+            <div className="text-gray-400 mb-0.5">Amount (INR)</div>
+            <div className="text-amber-300 font-black text-sm">{formatINR(tx.amount)}</div>
           </div>
           <div className="bg-gray-900/70 p-3 rounded-xl border border-gray-800">
             <div className="text-gray-400 mb-0.5">Card Number</div>
             <div className="text-white font-mono font-semibold">····{tx.card_last4 || '----'}</div>
           </div>
           <div className="bg-gray-900/70 p-3 rounded-xl border border-gray-800">
-            <div className="text-gray-400 mb-0.5">Processing Location</div>
-            <div className="text-white font-medium truncate">{tx.city || tx.location || 'US'}, {tx.country || ''}</div>
+            <div className="text-gray-400 mb-0.5">Processing Terminal</div>
+            <div className="text-white font-medium truncate">{tx.city || tx.location || 'India'}, {tx.country || ''}</div>
           </div>
           <div className="bg-gray-900/70 p-3 rounded-xl border border-gray-800">
             <div className="text-gray-400 mb-0.5">Category</div>
@@ -443,10 +477,31 @@ export default function Banker() {
   const [txOrder, setTxOrder] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [showNotify, setShowNotify] = useState(false)
+  const [sidebarTab, setSidebarTab] = useState('feed') // 'feed' | 'alerts'
   const [filterMode, setFilterMode] = useState('all') // 'all' | 'fraud' | 'safe'
   const [searchQuery, setSearchQuery] = useState('')
+  const [sentAlerts, setSentAlerts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fraudguard_banker_alerts')
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
+
   const wsRef = useRef(null)
   const reconnectRef = useRef(null)
+
+  // Persist sent alerts
+  useEffect(() => {
+    try {
+      localStorage.setItem('fraudguard_banker_alerts', JSON.stringify(sentAlerts))
+    } catch {}
+  }, [sentAlerts])
+
+  const handleAlertDispatched = useCallback((alertItem) => {
+    setSentAlerts((prev) => [alertItem, ...prev.filter((a) => a.tx.id !== alertItem.tx.id)])
+  }, [])
 
   const updateTx = useCallback((txId, updater) => {
     setTxMap((prev) => {
@@ -600,6 +655,7 @@ export default function Banker() {
   }, [txOrder, txMap, filterMode, searchQuery])
 
   const selectedState = selectedId ? txMap.get(selectedId) : null
+  const currentDispatchedAlert = selectedId ? sentAlerts.find((a) => a.tx.id === selectedId) : null
 
   return (
     <div className="flex h-[calc(100vh-57px)] overflow-hidden bg-gray-900">
@@ -607,156 +663,262 @@ export default function Banker() {
       {/* Modern Redesigned Left Sidebar */}
       {/* ============================================================== */}
       <div className="w-96 lg:w-[410px] shrink-0 bg-gray-950 border-r border-gray-800 flex flex-col overflow-hidden shadow-2xl">
-        {/* Top Header & Live Status */}
+        {/* Top Header & Navigation Switcher */}
         <div className="p-4 border-b border-gray-800/80 space-y-3.5 bg-gray-950">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <h2 className="font-extrabold text-white text-sm tracking-wide">Fraud Monitor Stream</h2>
+              <h2 className="font-extrabold text-white text-sm tracking-wide">Banker Monitor</h2>
             </div>
-            <span className="text-[11px] font-mono text-gray-400 bg-gray-900 px-2 py-0.5 rounded-md border border-gray-800">
-              {filteredOrder.length} / {counts.total} items
-            </span>
-          </div>
 
-          {/* Quick Stats Pill Bar */}
-          <div className="grid grid-cols-3 gap-1.5 bg-gray-900 p-1.5 rounded-xl border border-gray-800/90 text-xs">
-            <button
-              onClick={() => setFilterMode('all')}
-              className={`py-1.5 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
-                filterMode === 'all'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
-              }`}
-            >
-              <span>All</span>
-              <span className="text-[10px] bg-black/40 px-1.5 py-0.2 rounded-full">{counts.total}</span>
-            </button>
-            <button
-              onClick={() => setFilterMode('fraud')}
-              className={`py-1.5 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
-                filterMode === 'fraud'
-                  ? 'bg-red-600 text-white shadow-md shadow-red-900/40'
-                  : 'text-red-400 hover:text-red-300 hover:bg-red-950/30'
-              }`}
-            >
-              <span>🚨 Fraud</span>
-              <span className="text-[10px] bg-black/40 px-1.5 py-0.2 rounded-full font-black">{counts.fraud}</span>
-            </button>
-            <button
-              onClick={() => setFilterMode('safe')}
-              className={`py-1.5 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
-                filterMode === 'safe'
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/40'
-                  : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30'
-              }`}
-            >
-              <span>✅ Safe</span>
-              <span className="text-[10px] bg-black/40 px-1.5 py-0.2 rounded-full font-black">{counts.safe}</span>
-            </button>
-          </div>
-
-          {/* Search Box */}
-          <div className="relative">
-            <span className="absolute left-3 top-2.5 text-gray-500 text-xs">🔍</span>
-            <input
-              type="text"
-              placeholder="Filter by merchant, card (4521), amount…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-900/90 border border-gray-800 rounded-xl pl-8 pr-8 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-            />
-            {searchQuery && (
+            {/* Sidebar View Switcher: Live Stream vs Sent Alerts */}
+            <div className="flex items-center bg-gray-900 p-1 rounded-xl border border-gray-800 text-xs">
               <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-2 text-gray-400 hover:text-white text-xs"
+                onClick={() => setSidebarTab('feed')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                  sidebarTab === 'feed'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-gray-400 hover:text-white'
+                }`}
               >
-                ✕
+                <span>⚡ Feed</span>
+                <span className="text-[10px] bg-black/40 px-1.5 py-0.2 rounded-full">{counts.total}</span>
               </button>
-            )}
+              <button
+                onClick={() => setSidebarTab('alerts')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                  sidebarTab === 'alerts'
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <span>📨 Alerts</span>
+                <span className="text-[10px] bg-black/40 px-1.5 py-0.2 rounded-full font-black">{sentAlerts.length}</span>
+              </button>
+            </div>
           </div>
+
+          {sidebarTab === 'feed' ? (
+            <>
+              {/* Quick Stats Pill Bar */}
+              <div className="grid grid-cols-3 gap-1.5 bg-gray-900 p-1.5 rounded-xl border border-gray-800/90 text-xs">
+                <button
+                  onClick={() => setFilterMode('all')}
+                  className={`py-1.5 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    filterMode === 'all'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                  }`}
+                >
+                  <span>All</span>
+                  <span className="text-[10px] bg-black/40 px-1.5 py-0.2 rounded-full">{counts.total}</span>
+                </button>
+                <button
+                  onClick={() => setFilterMode('fraud')}
+                  className={`py-1.5 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    filterMode === 'fraud'
+                      ? 'bg-red-600 text-white shadow-md shadow-red-900/40'
+                      : 'text-red-400 hover:text-red-300 hover:bg-red-950/30'
+                  }`}
+                >
+                  <span>🚨 Fraud</span>
+                  <span className="text-[10px] bg-black/40 px-1.5 py-0.2 rounded-full font-black">{counts.fraud}</span>
+                </button>
+                <button
+                  onClick={() => setFilterMode('safe')}
+                  className={`py-1.5 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    filterMode === 'safe'
+                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/40'
+                      : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30'
+                  }`}
+                >
+                  <span>✅ Safe</span>
+                  <span className="text-[10px] bg-black/40 px-1.5 py-0.2 rounded-full font-black">{counts.safe}</span>
+                </button>
+              </div>
+
+              {/* Search Box */}
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-gray-500 text-xs">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Filter by merchant, card (4521), amount…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-900/90 border border-gray-800 rounded-xl pl-8 pr-8 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-2 text-gray-400 hover:text-white text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="bg-gray-900/70 p-2.5 rounded-xl border border-gray-800 text-xs text-gray-400 flex items-center justify-between">
+              <span>Showing all customer alerts dispatched</span>
+              {sentAlerts.length > 0 && (
+                <button
+                  onClick={() => setSentAlerts([])}
+                  className="text-xs text-red-400 hover:text-red-300 font-semibold"
+                >
+                  Clear Log
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Scrollable Transaction List */}
         <div className="flex-1 overflow-y-auto divide-y divide-gray-850 p-2 space-y-1.5">
-          {filteredOrder.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 text-xs space-y-2">
-              <div className="text-3xl">📭</div>
-              <p className="font-semibold text-gray-400">No transactions found</p>
-              <p className="text-[11px] text-gray-600">Try adjusting your search query or switching filters.</p>
-            </div>
-          ) : (
-            filteredOrder.map((id) => {
-              const state = txMap.get(id)
-              if (!state) return null
-              const { tx, result } = state
-              const isSelected = id === selectedId
-              const icon = getCategoryIcon(tx.category, tx.merchant)
-              const isFraud = result?.is_fraud
+          {sidebarTab === 'feed' ? (
+            filteredOrder.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 text-xs space-y-2">
+                <div className="text-3xl">📭</div>
+                <p className="font-semibold text-gray-400">No transactions match filter</p>
+                <p className="text-[11px] text-gray-600">Try adjusting your search query or switching filters.</p>
+              </div>
+            ) : (
+              filteredOrder.map((id) => {
+                const state = txMap.get(id)
+                if (!state) return null
+                const { tx, result } = state
+                const isSelected = id === selectedId
+                const icon = getCategoryIcon(tx.category, tx.merchant)
+                const isFraud = result?.is_fraud
+                const alertLogged = sentAlerts.some((a) => a.tx.id === id)
 
-              return (
-                <button
-                  key={id}
-                  onClick={() => setSelectedId(id)}
-                  className={`w-full text-left p-3.5 rounded-xl transition-all flex items-start gap-3 border ${
-                    isSelected
-                      ? isFraud
-                        ? 'bg-red-950/50 border-red-500/80 shadow-lg shadow-red-950/30'
-                        : 'bg-blue-950/50 border-blue-500/80 shadow-lg shadow-blue-950/30'
-                      : 'bg-gray-900/50 hover:bg-gray-900 border-gray-850 hover:border-gray-750'
-                  }`}
-                >
-                  {/* Category / Merchant Avatar */}
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 border ${
-                      isFraud
-                        ? 'bg-red-900/40 border-red-700/60 text-red-200'
-                        : 'bg-gray-800 border-gray-700 text-gray-200'
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setSelectedId(id)}
+                    className={`w-full text-left p-3.5 rounded-xl transition-all flex items-start gap-3 border ${
+                      isSelected
+                        ? isFraud
+                          ? 'bg-red-950/50 border-red-500/80 shadow-lg shadow-red-950/30'
+                          : 'bg-blue-950/50 border-blue-500/80 shadow-lg shadow-blue-950/30'
+                        : 'bg-gray-900/50 hover:bg-gray-900 border-gray-850 hover:border-gray-750'
                     }`}
                   >
-                    {icon}
-                  </div>
-
-                  {/* Body */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-0.5">
-                      <span className="font-bold text-white text-xs truncate">{tx.merchant}</span>
-                      <span className="text-blue-300 font-black text-xs shrink-0">{formatUSD(tx.amount)}</span>
+                    {/* Category / Merchant Avatar */}
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 border ${
+                        isFraud
+                          ? 'bg-red-900/40 border-red-700/60 text-red-200'
+                          : 'bg-gray-800 border-gray-700 text-gray-200'
+                      }`}
+                    >
+                      {icon}
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-gray-400 mb-2">
-                      <span className="font-mono">····{tx.card_last4 || '----'}</span>
-                      <span className="text-gray-500">{formatRelativeTime(tx.timestamp)}</span>
-                    </div>
+                    {/* Body */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <span className="font-bold text-white text-xs truncate">{tx.merchant}</span>
+                        <span className="text-amber-300 font-black text-xs shrink-0">{formatINR(tx.amount)}</span>
+                      </div>
 
-                    {/* Bottom Status Tags */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {result ? (
-                        isFraud ? (
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-600 text-white flex items-center gap-1 shadow-sm">
-                            <span>🚨 FRAUD</span>
-                            <span className="text-red-200 font-normal">({Math.round((result.fraud_probability ?? 1) * 100)}%)</span>
-                          </span>
+                      <div className="flex items-center justify-between text-[11px] text-gray-400 mb-2">
+                        <span className="font-mono">····{tx.card_last4 || '----'}</span>
+                        <span className="text-gray-500">{formatRelativeTime(tx.timestamp)}</span>
+                      </div>
+
+                      {/* Bottom Status Tags */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {result ? (
+                          isFraud ? (
+                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-600 text-white flex items-center gap-1 shadow-sm">
+                              <span>🚨 FRAUD</span>
+                              <span className="text-red-200 font-normal">({Math.round((result.fraud_probability ?? 1) * 100)}%)</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-700 text-white flex items-center gap-1 shadow-sm">
+                              <span>✅ SAFE</span>
+                              <span className="text-emerald-200 font-normal">({Math.round((1 - (result.fraud_probability ?? 0)) * 100)}%)</span>
+                            </span>
+                          )
                         ) : (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-700 text-white flex items-center gap-1 shadow-sm">
-                            <span>✅ SAFE</span>
-                            <span className="text-emerald-200 font-normal">({Math.round((1 - (result.fraud_probability ?? 0)) * 100)}%)</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-900/70 text-amber-300 border border-amber-700 animate-pulse">
+                            Analyzing…
                           </span>
-                        )
-                      ) : (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-900/70 text-amber-300 border border-amber-700 animate-pulse">
-                          Analyzing…
-                        </span>
-                      )}
+                        )}
 
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700/60 capitalize">
-                        {tx.city || tx.location || 'US'}
-                      </span>
+                        {alertLogged && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-900/80 text-blue-200 border border-blue-600">
+                            📨 Alerted
+                          </span>
+                        )}
+
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700/60 capitalize">
+                          {tx.city || tx.location || 'India'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </button>
-              )
-            })
+                  </button>
+                )
+              })
+            )
+          ) : (
+            /* Sent Alerts Sub-View */
+            sentAlerts.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 text-xs space-y-2">
+                <div className="text-3xl">📨</div>
+                <p className="font-semibold text-gray-400">No customer alerts dispatched yet</p>
+                <p className="text-[11px] text-gray-600">Click "Notify Customer" on any transaction to send and save an alert.</p>
+              </div>
+            ) : (
+              sentAlerts.map((alert, idx) => {
+                const { tx, result, dispatchedAt } = alert
+                const isSelected = tx.id === selectedId
+                const isFraud = result?.is_fraud
+
+                return (
+                  <button
+                    key={alert.tx.id || idx}
+                    onClick={() => {
+                      if (!txMap.has(tx.id)) {
+                        updateTx(tx.id, () => ({
+                          tx,
+                          result,
+                          doneEvents: ['inference_done'],
+                          lastEvent: 'inference_done',
+                        }))
+                      }
+                      setSelectedId(tx.id)
+                    }}
+                    className={`w-full text-left p-3.5 rounded-xl transition-all border space-y-2 ${
+                      isSelected
+                        ? 'bg-blue-950/60 border-blue-500 text-white shadow-lg'
+                        : 'bg-gray-900/60 hover:bg-gray-900 border-gray-800 text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{getCategoryIcon(tx.category, tx.merchant)}</span>
+                        <span className="font-bold text-white text-xs truncate">{tx.merchant}</span>
+                      </div>
+                      <span className="text-amber-300 font-black text-xs">{formatINR(tx.amount)}</span>
+                    </div>
+
+                    <div className="text-[10px] text-gray-400 bg-gray-950/80 p-2 rounded-lg border border-gray-800/80 line-clamp-2 font-mono">
+                      {alert.message}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] pt-1">
+                      <span className={`font-bold px-2 py-0.5 rounded-full ${
+                        isFraud ? 'bg-red-900 text-red-200' : 'bg-emerald-900 text-emerald-200'
+                      }`}>
+                        {isFraud ? '🚨 Fraud Incident Alert' : '✅ Clearance Notice'}
+                      </span>
+                      <span className="text-gray-500">{formatRelativeTime(dispatchedAt)}</span>
+                    </div>
+                  </button>
+                )
+              })
+            )
           )}
         </div>
       </div>
@@ -765,7 +927,11 @@ export default function Banker() {
       {/* Right Detail Panel */}
       {/* ============================================================== */}
       <div className="flex-1 overflow-hidden flex flex-col bg-gray-900">
-        <DetailPanel txState={selectedState} onNotify={() => setShowNotify(true)} />
+        <DetailPanel
+          txState={selectedState}
+          dispatchedAlert={currentDispatchedAlert}
+          onNotify={() => setShowNotify(true)}
+        />
       </div>
 
       {/* Notification Modal */}
@@ -774,6 +940,7 @@ export default function Banker() {
           tx={selectedState.tx}
           result={selectedState.result}
           onClose={() => setShowNotify(false)}
+          onAlertDispatched={handleAlertDispatched}
         />
       )}
     </div>

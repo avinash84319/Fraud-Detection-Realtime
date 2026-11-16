@@ -5,8 +5,9 @@ import LimeChart from '../components/LimeChart.jsx'
 
 const WS_URL = window.location.protocol === 'https:' ? `wss://${window.location.host}/ws` : `ws://${window.location.hostname}:8000/ws`
 
-function formatUSD(amount) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+function formatINR(amount) {
+  if (typeof amount !== 'number') amount = parseFloat(amount) || 0
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amount)
 }
 
 function formatTime(ts) {
@@ -66,7 +67,7 @@ function TxCard({ txState }) {
         <div>
           <div className="font-bold text-white text-lg">{tx.merchant}</div>
           <div className="text-sm text-gray-400">
-            {formatUSD(tx.amount)} · ····{tx.card_last4} · {tx.city || tx.location}
+            {formatINR(tx.amount)} · ····{tx.card_last4} · {tx.city || tx.location}
           </div>
           <div className="text-xs text-gray-500 mt-0.5">{formatTime(tx.timestamp)}</div>
         </div>
